@@ -392,6 +392,39 @@ SummariesModel <- R6Class(classname = "SummariesModel",
     getPsAsW.models = function() { private$PsAsW.models },  # get all summary model objects (one model object per outcome var sA[j])
     getcumprodAeqa = function() { private$cumprodAeqa },  # get joint prob as a vector of the cumulative prod over j for P(sA[j]=a[j]|sW)
 
+    update = function(newdata) {
+      assert_that(is.DatNet.sWsA(newdata))
+      #TODO: This should probably be combined with the fit function
+      # serial loop over all regressions in PsAsW.models:
+      if (!self$parfit_allowed) {
+        for (k_i in seq_along(private$PsAsW.models)) {
+          private$PsAsW.models[[k_i]]$update(newdata = newdata)
+        }
+      # parallel loop over all regressions in PsAsW.models:
+      } else if (self$parfit_allowed) {
+        val <- checkpkgs(pkgs=c("foreach", "doParallel", "matrixStats"))
+        mcoptions <- list(preschedule = FALSE)
+        # NOTE: Each fitRes[[k_i]] will contain a copy of every single R6 object that was passed by reference ->
+        # *** the size of fitRes is 100x the size of private$PsAsW.models ***
+        updateRes <- foreach::foreach(k_i = seq_along(private$PsAsW.models), .options.multicore = mcoptions) %dopar% {
+          private$PsAsW.models[[k_i]]$update(newdata = newdata)
+        }
+        # copy the fits one by one from BinOutModels above into private field for BinOutModels
+        for (k_i in seq_along(private$PsAsW.models)) {
+          # The copy.fit and copy.update functions will probably be the exact same thing. Use the general
+          # fit method here.
+          private$PsAsW.models[[k_i]]$copy.fit(updateRes[[k_i]])
+        }
+      }
+      invisible(self)
+    },
+
+    # The fit function gets called in the following way:
+    # 1. from outside, starting the process.
+    # 2. then the loop calls the inner summary models.
+    # 3. These summmary models then call this function again, but they have a different list of submodels
+    # 4. this propagates down, until super is not called anymore, and hence we are at the bottom of the tree
+    #   the bin models.
     fit = function(data) {
       assert_that(is.DatNet.sWsA(data))
       # serial loop over all regressions in PsAsW.models:
@@ -671,6 +704,15 @@ ContinSummaryModel <- R6Class(classname = "ContinSummaryModel",
       bin_regs <- def_regs_subset(self = self)
       super$initialize(reg = bin_regs, no_set_outvar = TRUE, ...)
     },
+
+    update = function(newdata) {
+      assert_that(is.DatNet.sWsA(newdata))
+      newdata$binirize.sVar(name.sVar = self$outvar,
+                            intervals = self$intrvls,
+                            nbins = self$reg$nbins, bin.nms = self$reg$bin_nms)
+      super$update(newdata)
+    },
+
 
     # Transforms data for continous outcome to discretized bins sA[j] -> BinsA[1], ..., BinsA[M] and calls $super$fit on that transformed data
     # Gets passed redefined subsets that exclude degenerate Bins (prev subset is defined for names in sA - names have changed though)

@@ -75,6 +75,18 @@ logisfitR6 <- R6Class("logisfitR6",
            if (gvars$verbose) print(fit$coef)
            class(fit) <- c(class(fit), c(self$lmclass))
            return(fit)
+         },
+
+         update = function(datsum_obj, m.fit) {
+           if (gvars$verbose) print(paste("calling update for", self$fitfunname))
+           X_mat <- datsum_obj$getXmat
+           Y_vals <- datsum_obj$getY
+           if (nrow(X_mat) == 0L) {
+             m.fit$coeff <- list(coef = rep.int(NA_real_, ncol(X_mat)))
+           } else {
+             m.fit$coeff <- private$do.update(X_mat, Y_vals, m.fit)
+           }
+           return(m.fit)
          }
          ),
   active =
@@ -104,8 +116,8 @@ logisfitR6 <- R6Class("logisfitR6",
           stop('Override this function in a subclass')
         },
 
-        update = function() {
-          stop('Override this function in a subclass')
+        do.update = function() {
+          stop('The used method does not support updating!')
         }
 
     )
