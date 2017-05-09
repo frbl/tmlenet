@@ -153,7 +153,8 @@ glmR6 <- R6Class("glmR6",
         },
 
         do.predict = function(X_mat, m.fit) {
-          eta <- X_mat[,!is.na(m.fit$coef), drop = FALSE] %*% m.fit$coef[!is.na(m.fit$coef)]
+          coef <- m.fit$coef$coef
+          eta <- X_mat[,!is.na(coef), drop = FALSE] %*% coef[!is.na(coef)]
           match.fun(FUN = m.fit$linkfun)(eta)
         }
     )
@@ -189,7 +190,8 @@ speedglmR6 <- R6Class("speedglmR6",
         },
 
         do.predict = function(X_mat, m.fit) {
-          eta <- X_mat[,!is.na(m.fit$coef), drop = FALSE] %*% m.fit$coef[!is.na(m.fit$coef)]
+          coef <- m.fit$coef$coef
+          eta <- X_mat[,!is.na(coef), drop = FALSE] %*% coef[!is.na(coef)]
           match.fun(FUN = m.fit$linkfun)(eta)
         }
     )
