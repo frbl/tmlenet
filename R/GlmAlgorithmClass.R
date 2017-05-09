@@ -71,7 +71,7 @@ logisfitR6 <- R6Class("logisfitR6",
            } else {
              m.fit <- private$do.fit(X_mat, Y_vals)
            }
-           fit <- list(coef = m.fit$coef, linkfun = "logit_linkinv", fitfunname = self$fitfunname)
+           fit <- list(coef = m.fit, linkfun = "logit_linkinv", fitfunname = self$fitfunname)
            if (gvars$verbose) print(fit$coef)
            class(fit) <- c(class(fit), c(self$lmclass))
            return(fit)
@@ -148,7 +148,7 @@ glmR6 <- R6Class("glmR6",
           ctrl <- glm.control(trace = FALSE)
           # ctrl <- glm.control(trace = FALSE, maxit = 1000)
           SuppressGivenWarnings({
-            return(stats::glm.fit(x = X_mat, y = Y_vals, family = binomial() , control = ctrl))
+            return(stats::glm.fit(x = X_mat, y = Y_vals, family = binomial() , control = ctrl)$coef)
           }, GetWarningsToSuppress())
         },
 
@@ -185,7 +185,7 @@ speedglmR6 <- R6Class("speedglmR6",
             message("speedglm::speedglm.wfit failed, falling back on stats:glm.fit; ", m.fit)
             return(private$fallback_function(X_mat, Y_vals))
           }
-          return(m.fit)
+          return(m.fit$coef)
         },
 
         do.predict = function(X_mat, m.fit) {
