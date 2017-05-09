@@ -67,7 +67,7 @@ logisfitR6 <- R6Class("logisfitR6",
  
            # X_mat has 0 rows: return NA's and avoid throwing exception:
            if (nrow(X_mat) == 0L) {
-             m.fit <- list(coef = rep.int(NA_real_, ncol(X_mat)))
+             m.fit <- rep.int(NA_real_, ncol(X_mat))
            } else {
              m.fit <- private$do.fit(X_mat, Y_vals)
            }
@@ -82,9 +82,9 @@ logisfitR6 <- R6Class("logisfitR6",
            X_mat <- datsum_obj$getXmat
            Y_vals <- datsum_obj$getY
            if (nrow(X_mat) == 0L) {
-             m.fit$coeff <- list(coef = rep.int(NA_real_, ncol(X_mat)))
+             m.fit <- rep.int(NA_real_, ncol(X_mat))
            } else {
-             m.fit$coeff <- private$do.update(X_mat, Y_vals, m.fit)
+             m.fit <- private$do.update(X_mat, Y_vals, m.fit)
            }
            return(m.fit)
          }
@@ -113,7 +113,8 @@ logisfitR6 <- R6Class("logisfitR6",
         },
 
         do.predict = function(X_mat, m.fit) {
-          stop('Override this function in a subclass')
+          eta <- X_mat[,!is.na(m.fit$coef), drop = FALSE] %*% m.fit$coef[!is.na(m.fit$coef)]
+          match.fun(FUN = m.fit$linkfun)(eta)
         },
 
         do.update = function() {
@@ -150,13 +151,12 @@ glmR6 <- R6Class("glmR6",
           SuppressGivenWarnings({
             return(stats::glm.fit(x = X_mat, y = Y_vals, family = binomial() , control = ctrl)$coef)
           }, GetWarningsToSuppress())
-        },
-
-        do.predict = function(X_mat, m.fit) {
-          coef <- m.fit$coef$coef
-          eta <- X_mat[,!is.na(coef), drop = FALSE] %*% coef[!is.na(coef)]
-          match.fun(FUN = m.fit$linkfun)(eta)
         }
+
+        #do.predict = function(X_mat, m.fit) {
+          #eta <- X_mat[,!is.na(m.fit$coef), drop = FALSE] %*% m.fit$coef[!is.na(m.fit$coef)]
+          #match.fun(FUN = m.fit$linkfun)(eta)
+        #}
     )
 )
 
@@ -187,12 +187,7 @@ speedglmR6 <- R6Class("speedglmR6",
             return(private$fallback_function(X_mat, Y_vals))
           }
           return(m.fit$coef)
-        },
-
-        do.predict = function(X_mat, m.fit) {
-          coef <- m.fit$coef$coef
-          eta <- X_mat[,!is.na(coef), drop = FALSE] %*% coef[!is.na(coef)]
-          match.fun(FUN = m.fit$linkfun)(eta)
         }
+
     )
 )
